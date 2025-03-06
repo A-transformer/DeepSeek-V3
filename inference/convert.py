@@ -60,9 +60,7 @@ def main(hf_ckpt_path, save_path, n_experts, mp):
                     elif dim is not None:
                         assert param.size(dim) % mp == 0, f"Dimension {dim} must be divisible by {mp}"
                         shard_size = param.size(dim) // mp
-                        start_idx = i * shard_size
-                        end_idx = (i + 1) * shard_size
-                        new_param = param.narrow(dim, start_idx, shard_size).contiguous()
+                        new_param = param.narrow(dim, i * shard_size, shard_size).contiguous()
                     state_dicts[i][name] = new_param
 
     os.makedirs(save_path, exist_ok=True)
