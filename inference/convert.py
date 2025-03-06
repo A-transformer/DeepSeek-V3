@@ -58,18 +58,11 @@ def main(hf_ckpt_path, save_path, n_experts, mp):
                         if idx < i * n_local_experts or idx >= (i + 1) * n_local_experts:
                             continue
                     elif dim is not None:
-                        # Check if the dimension can be evenly divided by the model parallelism factor (mp).
-                        # If not, issue a warning and handle possible truncation.
-                        if param.size(dim) % mp != 0:
-                            print(f"Warning: Dimension {dim} = {param.size(dim)} is not divisible by {mp}, truncating last shard.")
-                        # Compute the shard size by dividing the parameter dimension by mp.
+                        assert param.size(dim) % mp == 0, f"Dimension {dim} must be divisible by {mp}"
                         shard_size = param.size(dim) // mp
-                        # Calculate the starting index for the current shard, ensuring it does not exceed the total size.
-                        start_idx = min(i * shard_size, param.size(dim)) 
-                        # Calculate the ending index for the current shard, ensuring it does not exceed the total size.
-                        end_idx = min((i + 1) * shard_size, param.size(dim))
-                        # Extract the corresponding shard using PyTorch's narrow function, ensuring contiguous memory.
-                        new_param = param.narrow(dim, start_idx, end_idx - start_idx).contiguous()
+                        start_idx = i * shard_size
+                        end_idx = (i + 1) * shard_size
+                        new_param = param.narrow(dim, start_idx, shard_size).contiguous()
                     state_dicts[i][name] = new_param
 
     os.makedirs(save_path, exist_ok=True)
